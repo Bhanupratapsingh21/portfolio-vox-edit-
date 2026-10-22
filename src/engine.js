@@ -53,6 +53,14 @@ export function startVox(root) {
     return () => {};
   }
 
+  // Pointer position (-1..1) for the hero tilt; written on the next frame, not per event.
+  let pointer = null;
+  const onPointer = (e) => {
+    pointer = [(e.clientX / innerWidth) * 2 - 1, (e.clientY / innerHeight) * 2 - 1];
+  };
+  addEventListener("pointermove", onPointer, { passive: true });
+  let lastScroll = -1;
+
   const turbulence = root.querySelector("#boil-noise");
   const start = performance.now();
   let prev = start;
@@ -82,6 +90,17 @@ export function startVox(root) {
       for (const cam of b.cams) writeCam(cam, b.p, phone);
     }
 
+    const scroll = clamp01(scrollY / Math.max(1, document.documentElement.scrollHeight - vh));
+    if (Math.abs(scroll - lastScroll) > 0.0005) {
+      lastScroll = scroll;
+      root.style.setProperty("--scroll", scroll.toFixed(4));
+    }
+    if (pointer) {
+      root.style.setProperty("--mx", pointer[0].toFixed(3));
+      root.style.setProperty("--my", pointer[1].toFixed(3));
+      pointer = null;
+    }
+
     // Texture on twos: boil and grain step 12 times a second, motion stays smooth.
     if (now - lastTexture > 1000 / 12) {
       lastTexture = now;
@@ -94,5 +113,8 @@ export function startVox(root) {
   };
 
   raf = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(raf);
+  return () => {
+    cancelAnimationFrame(raf);
+    removeEventListener("pointermove", onPointer);
+  };
 }
