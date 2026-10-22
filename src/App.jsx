@@ -273,7 +273,7 @@ function EvidenceBoard() {
             .filter((name) => pins[name])
             .map((name) => {
               const p = pins[name];
-              const sag = 40 + Math.abs(p[0] - h[0]) * 0.08;
+              const sag = 14 + Math.abs(p[0] - h[0]) * 0.04;
               return { name, d: `M${h[0]} ${h[1]} Q${(h[0] + p[0]) / 2} ${Math.max(h[1], p[1]) + sag} ${p[0]} ${p[1]}` };
             })
         : [];
@@ -350,7 +350,7 @@ function Clocks() {
   }, []);
   const time = (timeZone) => new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone }).format(now);
   const local = Intl.DateTimeFormat().resolvedOptions().timeZone || world.homeZone;
-  const place = local.split("/").pop().replace(/_/g, " ");
+  const place = local.split("/").pop().replace(/_/g, " ").replace("Calcutta", "Kolkata");
   return (
     <div className="clocks">
       <div className="clock">
@@ -411,6 +411,8 @@ function World() {
         <p className="world-open slap k" style={win(0.4, 0.46)}>
           <Hl a={0.46} b={0.56}>{world.open}</Hl>
         </p>
+      </div>
+      <div className="world-meta">
         <div className="slap k" style={win(0.82, 0.88, { "--r": "-2deg" })}>
           <Clocks />
         </div>

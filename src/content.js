@@ -159,8 +159,8 @@ export const end = {
   note: "Open to Senior SWE, SDE-2 and SDE-3 roles. Remote, worldwide.",
   sign: "— Bhanu",
   doors: [
-    { label: "Book a call", sub: "cal.com/whybhanu", href: links.call, color: "var(--blue)", ink: "var(--paper)" },
-    { label: "Resume", sub: "The full record", href: links.resume, color: "var(--red)", ink: "var(--paper)" },
-    { label: "GitHub", sub: "@bhanupratapsingh21", href: links.github, color: "var(--yellow)", ink: "var(--ink)" },
+    { label: "Book a call", sub: "cal.com/whybhanu", href: links.call, color: "var(--cobalt)", ink: "var(--paper)" },
+    { label: "Resume", sub: "The full record", href: links.resume, color: "var(--orange)", ink: "var(--ink)" },
+    { label: "GitHub", sub: "@bhanupratapsingh21", href: links.github, color: "var(--ink)", ink: "var(--paper)" },
   ],
 };

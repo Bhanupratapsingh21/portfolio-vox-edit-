@@ -311,11 +311,11 @@ img { display: block; max-width: 100%; }
 .printer-cam { position: relative; display: flex; flex-direction: column; align-items: center; transform-origin: 50% 100%; }
 .feed { overflow: hidden; padding: 0 40px; margin-bottom: -18px; }
 .paper {
-  width: min(78vw, 400px);
-  padding: 26px 22px 46px;
+  width: min(80vw, 470px);
+  padding: 28px 26px 48px;
   background: #fcfbf7;
   color: #1b1a18;
-  font: 500 clamp(13px, 1.05vw, 15px) / 1.5 var(--mono);
+  font: 500 clamp(13px, 1.2vw, 17px) / 1.5 var(--mono);
   text-transform: uppercase;
   transform: translateY(calc((1 - var(--t)) * 100%));
   box-shadow: inset 0 -30px 30px -30px rgba(0, 0, 0, 0.15);
@@ -344,7 +344,7 @@ img { display: block; max-width: 100%; }
 .printer {
   position: relative;
   z-index: 2;
-  width: min(90vw, 490px);
+  width: min(92vw, 560px);
   height: 86px;
   display: flex;
   align-items: center;
@@ -475,6 +475,7 @@ img { display: block; max-width: 100%; }
 .clip-name .wordmark { height: 38px; width: auto; max-width: 80%; object-fit: contain; object-position: left; }
 .clip-name .wordmark[src*="newral"] { height: 50px; }
 .clip p { margin: 0; font-size: clamp(14px, 1.15vw, 16px); line-height: 1.5; color: var(--muted); }
+.star { z-index: 3; }
 .star .ring { inset: -20% -10%; }
 .note { position: absolute; right: -10px; bottom: -46px; font: 600 38px var(--hand); color: var(--red); white-space: nowrap; }
 .minor { display: flex; justify-content: center; gap: clamp(12px, 2vw, 28px); margin-top: clamp(26px, 5vh, 50px); }
@@ -486,7 +487,7 @@ img { display: block; max-width: 100%; }
 .string {
   fill: none;
   stroke: #c21d12;
-  stroke-width: 2.4;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: calc(1 - var(--t));
@@ -529,6 +530,7 @@ img { display: block; max-width: 100%; }
   box-shadow: 0 0 0 3px var(--sheet);
 }
 .world-copy { position: absolute; left: clamp(16px, 6vw, 96px); top: 11vh; display: grid; justify-items: start; gap: 14px; z-index: 5; }
+.world-meta { position: absolute; left: clamp(16px, 6vw, 96px); bottom: 7vh; display: grid; justify-items: start; gap: 10px; z-index: 5; }
 .world-open { margin: 0; font: 800 clamp(34px, 4.4vw, 70px) / 1 var(--display); letter-spacing: -0.045em; }
 .world-roles, .world-gh {
   margin: 0;
@@ -555,7 +557,7 @@ img { display: block; max-width: 100%; }
 /* ---------- End: an envelope and postage-stamp links ---------- */
 
 .end .stage { display: grid; grid-template-rows: 1fr auto auto; justify-items: center; gap: 1.6vh; padding: 0 16px 3vh; }
-.post { position: relative; width: min(92vw, 720px); height: 100%; }
+.post { position: relative; width: min(92vw, 800px); height: 100%; }
 .env { position: absolute; left: 0; right: 0; bottom: 0; height: min(40vh, 360px); }
 .env-piece { position: absolute; inset: 0; transform: translateY(calc(var(--t) * 80vh)); }
 .env-back, .env-front, .env-flap { position: absolute; inset: 0; background: #cda070 url("/vox/paper.webp") 0 0 / 720px; background-blend-mode: multiply; }
@@ -569,7 +571,7 @@ img { display: block; max-width: 100%; }
   transform-origin: 50% 0;
   transform: perspective(1000px) rotateX(calc(var(--t) * 178deg));
 }
-.letter-drop { position: absolute; left: 4%; right: 4%; bottom: 0; transform: translateY(calc(var(--t) * 30vh)); }
+.letter-drop { position: absolute; left: 4%; right: 4%; bottom: 0; transform: translateY(calc(var(--t) * 2vh)); }
 .letter {
   position: relative;
   background: var(--sheet);
@@ -606,7 +608,8 @@ img { display: block; max-width: 100%; }
 }
 .end-title { margin: 0 130px 14px 0; font: 800 clamp(40px, 5.6vw, 86px) / 0.95 var(--display); letter-spacing: -0.045em; }
 .letter-note { margin: 0 0 22px; font-size: clamp(16px, 1.4vw, 20px); color: var(--muted); }
-.stamps { display: flex; flex-wrap: wrap; gap: clamp(12px, 2vw, 22px); }
+.stamps { display: flex; gap: clamp(12px, 2vw, 22px); }
+.stamps .stamp-link { flex: 1 1 0; min-width: 0; }
 .stamp-link {
   display: block;
   padding: 7px;
@@ -619,7 +622,6 @@ img { display: block; max-width: 100%; }
   position: relative;
   display: grid;
   gap: 4px;
-  min-width: clamp(150px, 13vw, 190px);
   padding: 16px 16px 12px;
   background: var(--c);
   outline: 2px solid rgba(255, 255, 255, 0.45);
@@ -668,12 +670,15 @@ img { display: block; max-width: 100%; }
   .minor { display: none; }
   .note { right: 0; bottom: -40px; font-size: 28px; }
   .world-copy { top: 9vh; right: 16px; }
+  .world-open { font-size: 25px; }
+  .world-meta { bottom: 12vh; right: 16px; }
+  .rc-total { font-size: 1em; }
   .clock strong { font-size: 20px; }
   .map-cam { width: 200vw; }
   .map-cam .pin { width: 5%; }
   .end-title { margin-right: 0; padding-top: 70px; }
   .postmark { width: 80px; height: 80px; padding: 12px; font-size: 9px; right: 14px; top: 12px; }
-  .stamp-face { min-width: 0; }
+  .stamps { flex-wrap: wrap; }
   .stamps .stamp-link { flex: 1 1 40%; }
 }
 
