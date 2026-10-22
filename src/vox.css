@@ -1,0 +1,538 @@
+:root {
+  --paper: #ebe8e2;
+  --sheet: #f7f5f0;
+  --ink: #161513;
+  --muted: #55524c;
+  --yellow: #f2c230;
+  --blue: #2b4be0;
+  --red: #e0392b;
+  --hl: #f7d23e;
+  --serif: "Instrument Serif", Georgia, serif;
+  --sans: "Inter", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+.defs { position: absolute; width: 0; height: 0; }
+
+/* ---------- The clock: a tall section, a pinned stage ---------- */
+
+.beat { position: relative; height: calc(var(--len) * 100svh); --p: 0; }
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--paper) url("/vox/paper.webp") 0 0 / 720px;
+}
+/* Faint grain that jumps on twos, and a barely-there vignette. */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: url("/vox/grain.webp") var(--grain-x, 0) var(--grain-y, 0) / 256px;
+  opacity: 0.35;
+  box-shadow: inset 0 0 24vmin rgba(40, 30, 20, 0.07);
+}
+
+/* ---------- Timed pieces: a private --t from the chapter's --p ---------- */
+
+.k { --t: clamp(0, (var(--p) - var(--a, 0)) / (var(--b, 1) - var(--a, 0)), 1); }
+
+/* Lands oversized and turned, then eases out. */
+.slap {
+  --e: calc((1 - var(--t)) * (1 - var(--t)));
+  opacity: clamp(0, calc(var(--t) * 4), 1);
+  transform: rotate(calc(var(--r, 0deg) - 6deg * var(--e))) scale(calc(1 + 0.3 * var(--e)));
+}
+.grow { clip-path: inset(0 calc((1 - var(--t)) * 100%) 0 0); }
+.drop {
+  opacity: clamp(0, calc(var(--t) * 3), 1);
+  transform: translate(-50%, calc(-96% - (1 - var(--t)) * 40vh)) rotate(calc((1 - var(--t)) * -25deg));
+}
+
+/* Highlighter: a masked yellow stroke that swipes left to right under crisp text. */
+.hl {
+  position: relative;
+  background: none;
+  color: inherit;
+  white-space: nowrap;
+  padding: 0 0.06em;
+}
+.hl::before {
+  content: "";
+  position: absolute;
+  inset: 0.1em -0.12em 0;
+  background: var(--hl);
+  -webkit-mask: url("/vox/highlighter.webp") 0 0 / 100% 100% no-repeat;
+  mask: url("/vox/highlighter.webp") 0 0 / 100% 100% no-repeat;
+  clip-path: inset(0 calc((1 - var(--t)) * 100%) 0 0);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Marker circle: the scanned ellipse intersected with a conic sweep, so it draws itself. */
+.ring {
+  position: absolute;
+  inset: -45% -22%;
+  background: var(--red);
+  -webkit-mask: url("/vox/circle.webp") center / 100% 100% no-repeat,
+    conic-gradient(from 20deg, #000 calc(var(--t) * 360deg), transparent 0);
+  -webkit-mask-composite: source-in;
+  mask: url("/vox/circle.webp") center / 100% 100% no-repeat,
+    conic-gradient(from 20deg, #000 calc(var(--t) * 360deg), transparent 0);
+  mask-composite: intersect;
+  filter: url(#boil);
+  pointer-events: none;
+}
+
+.torn {
+  background: var(--c, var(--ink));
+  -webkit-mask: url("/vox/torn.webp") 0 50% / 100% 100% no-repeat;
+  mask: url("/vox/torn.webp") 0 50% / 100% 100% no-repeat;
+}
+
+.arrow-ink {
+  position: absolute;
+  background: var(--red);
+  -webkit-mask: url("/vox/arrow.webp") center / 100% 100% no-repeat;
+  mask: url("/vox/arrow.webp") center / 100% 100% no-repeat;
+  clip-path: inset(0 calc((1 - var(--t)) * 100%) 0 0);
+  filter: url(#boil);
+  pointer-events: none;
+}
+
+.tape {
+  position: absolute;
+  width: clamp(80px, 9vw, 140px);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.chip {
+  display: inline-block;
+  background: var(--ink);
+  color: var(--paper);
+  font: 500 13px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 8px 11px;
+}
+
+.door-link {
+  position: absolute;
+  z-index: 10;
+  right: clamp(16px, 4vw, 56px);
+  bottom: clamp(18px, 5vh, 48px);
+  font: 500 14px/1 var(--mono);
+  letter-spacing: 0.04em;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 13px 15px;
+  text-decoration: none;
+}
+
+/* ---------- Chapter cards: a colour block that tears away ---------- */
+
+.card {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  transform: translateY(calc(var(--t) * -125%));
+  pointer-events: none;
+}
+.card-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--c);
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(16px, 7vw, 120px);
+  gap: 14px;
+}
+.card-n { font: 500 14px var(--mono); margin-top: -1.6em; opacity: 0.8; }
+.card h2 {
+  margin: 0;
+  font: 400 clamp(68px, 14vw, 220px) / 0.9 var(--serif);
+  letter-spacing: -0.02em;
+}
+.card-edge {
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  top: calc(100% - 5vh);
+  height: 14vh;
+}
+
+/* ---------- Title ---------- */
+
+.title-cam { position: absolute; inset: 0; transform-origin: 40% 50%; }
+.mark {
+  position: absolute;
+  top: clamp(16px, 4vh, 36px);
+  left: clamp(16px, 5vw, 64px);
+  font: 400 30px var(--serif);
+}
+.title-copy {
+  position: absolute;
+  left: clamp(16px, 6vw, 110px);
+  top: 47%;
+  transform: translateY(-50%);
+  width: min(58vw, 860px);
+  z-index: 2;
+}
+.title h1 {
+  margin: 20px 0 18px;
+  font: 400 clamp(46px, 6.2vw, 112px) / 0.98 var(--serif);
+  letter-spacing: -0.02em;
+}
+.title .hl { white-space: nowrap; }
+.lede { max-width: 600px; margin: 0; font-size: clamp(16px, 1.35vw, 20px); line-height: 1.5; color: var(--muted); }
+.cutout {
+  position: absolute;
+  margin: 0;
+  right: clamp(8px, 5vw, 110px);
+  top: 9vh;
+  width: min(32vw, 470px);
+  z-index: 1;
+  filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.22));
+}
+
+/* The win clipping: a taped newspaper cutting next to the cut-out. */
+.yc {
+  position: absolute;
+  z-index: 3;
+  right: clamp(16px, 5vw, 110px);
+  bottom: 14vh;
+  width: clamp(230px, 20vw, 310px);
+  background: var(--sheet);
+  padding: 18px 18px 16px;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.18);
+}
+.yc-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 10.5px/1.3 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yc strong { display: block; margin: 10px 0 6px; font: 400 clamp(28px, 2.6vw, 38px) / 1 var(--serif); }
+.yc p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+
+/* Three clean torn strips, stacked and slightly off-true, running off the right edge. */
+.strips {
+  position: absolute;
+  right: -3vw;
+  bottom: 10vh;
+  width: 54vw;
+  display: grid;
+  z-index: 2;
+}
+.strips .torn { height: 6.2vh; margin-top: -1.6vh; transform: rotate(var(--rr)); }
+.strips .torn:first-child { margin-top: 0; }
+
+.tag-link {
+  position: absolute;
+  left: clamp(16px, 5vw, 64px);
+  bottom: clamp(18px, 5vh, 48px);
+  font: 500 13px var(--mono);
+  background: var(--sheet);
+  border: 1px solid var(--ink);
+  padding: 10px 13px;
+  text-decoration: none;
+  z-index: 3;
+}
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(18px, 5vh, 48px);
+  transform: translateX(-50%);
+  font: 500 13px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  z-index: 3;
+  animation: twinkle 1.5s steps(6, end) infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+/* ---------- Cameras ---------- */
+
+.cam-frame { position: absolute; inset: 0; display: grid; place-items: center; }
+.cam { position: relative; transform-origin: 50% 50%; }
+
+/* ---------- 01 The wins: the highlighted newspaper cutting ---------- */
+
+.doc {
+  width: min(90vw, 900px);
+  background: var(--sheet);
+  padding: clamp(22px, 3.6vw, 52px);
+  box-shadow: 0 1px 0 #d8d3c8, 0 18px 40px rgba(0, 0, 0, 0.16);
+  transform: rotate(-0.6deg);
+}
+.doc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  font: 500 12px var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 3px double var(--ink);
+  padding-bottom: 10px;
+}
+.doc-mast { font: 400 clamp(22px, 2.2vw, 30px) / 1 var(--serif); letter-spacing: 0; text-transform: none; color: var(--ink); }
+.doc h3 { font: 400 clamp(30px, 3.2vw, 48px) / 1.05 var(--serif); margin: 18px 0 10px; }
+.doc p { font: 400 clamp(18px, 1.7vw, 25px) / 1.5 var(--serif); margin: 12px 0; }
+.circled { position: relative; white-space: nowrap; font-weight: 600; }
+.sticky {
+  position: absolute;
+  right: -5%;
+  bottom: -8%;
+  width: 200px;
+  padding: 18px 16px;
+  background: var(--yellow);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.2);
+  display: grid;
+  gap: 2px;
+  font: 500 11px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.sticky strong { font: 400 52px / 1 var(--serif); text-transform: none; letter-spacing: 0; }
+
+/* ---------- 02 The climb: a timeline the camera pans across ---------- */
+
+.track {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--n) * 100vw);
+  display: flex;
+}
+.panel {
+  position: relative;
+  width: 100vw;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-rows: auto 1fr;
+  align-content: center;
+  align-items: start;
+  gap: 22px clamp(20px, 4vw, 70px);
+  padding: 11vh clamp(16px, 7vw, 130px);
+}
+.when { grid-column: 1 / -1; font: 400 clamp(46px, 6.6vw, 104px) / 1 var(--serif); }
+.shot {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--sheet) radial-gradient(circle, rgba(0, 0, 0, 0.12) 1.2px, transparent 1.6px) 0 0 / 9px 9px;
+  border: 12px solid #fff;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 18px;
+}
+.shot.has-logo { background: #fff; }
+.shot span { font: 400 clamp(32px, 4vw, 66px) / 1 var(--serif); }
+.shot-logo { width: clamp(130px, 17vw, 300px); height: auto; max-height: 16vh; object-fit: contain; }
+.shot-logo[src*="eventory"], .shot-logo[src*="synappses"] { width: clamp(56px, 6vw, 96px); }
+.shot .pin { position: absolute; left: 50%; top: 0; width: 50px; }
+.side { display: grid; justify-items: start; gap: 18px; }
+.job { background: var(--sheet); padding: 24px 26px; box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14); }
+.job h3 { margin: 0 0 10px; font: 600 clamp(18px, 1.75vw, 25px) / 1.25 var(--sans); }
+.job p { margin: 0; line-height: 1.55; color: var(--muted); font-size: clamp(15px, 1.3vw, 19px); }
+.steps { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px dashed #b9b3a7; display: grid; gap: 7px; }
+.steps li { font-size: clamp(14px, 1.2vw, 17px); }
+.steps span { display: inline-block; min-width: 88px; font: 500 0.85em var(--mono); color: var(--red); }
+.stat {
+  background: var(--ink);
+  color: var(--paper);
+  font: 500 clamp(13px, 1.15vw, 16px) var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 13px 15px;
+}
+.stamp {
+  position: absolute;
+  right: -16px;
+  top: 18px;
+  border: 4px solid var(--red);
+  color: var(--red);
+  background: rgba(247, 245, 240, 0.75);
+  font: 600 clamp(22px, 2.4vw, 34px) var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+}
+
+/* ---------- 03 The builds: a board of clippings ---------- */
+
+.builds .cam { width: min(92vw, 1120px); }
+.board-title { margin: 0 0 4vh; font: 400 clamp(40px, 5.2vw, 82px) / 1 var(--serif); text-align: center; }
+.board { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(16px, 2.6vw, 36px); }
+.clip {
+  position: relative;
+  background: var(--sheet);
+  padding: 24px 22px 20px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.16);
+}
+.feature { grid-column: span 2; }
+.feature:nth-child(n + 4) { grid-column: span 3; }
+.clip-tag { font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--red); }
+.clip-name { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 8px 0 8px; }
+.clip-name strong { font: 400 clamp(28px, 2.6vw, 40px) / 1 var(--serif); }
+.clip-name .mark-icon { width: 28px; height: 28px; object-fit: contain; }
+.clip-name .wordmark { height: 38px; width: auto; max-width: 80%; object-fit: contain; object-position: left; }
+.clip-name .wordmark[src*="newral"] { height: 50px; }
+.clip p { margin: 0; font-size: clamp(14px, 1.15vw, 16px); line-height: 1.5; color: var(--muted); }
+.star { z-index: 2; }
+.star .ring { inset: -20% -10%; }
+.note {
+  position: absolute;
+  right: -10px;
+  bottom: -46px;
+  font: 400 32px var(--serif);
+  color: var(--red);
+  white-space: nowrap;
+}
+.minor { display: flex; justify-content: center; gap: clamp(12px, 2vw, 28px); margin-top: clamp(22px, 4vh, 44px); }
+.clip.small { padding: 12px 14px; opacity: 0.85; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); width: clamp(160px, 17vw, 240px); }
+.clip.small.slap { opacity: calc(clamp(0, var(--t) * 4, 1) * 0.85); }
+.clip.small strong { display: block; font: 400 22px / 1 var(--serif); margin-bottom: 4px; }
+.clip.small .wordmark { height: 22px; width: auto; margin-bottom: 6px; }
+.clip.small p { font-size: 12.5px; }
+
+/* ---------- 04 Remote, worldwide: the map ---------- */
+
+.map-frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.map-cam { flex: none; width: max(100vw, 178svh); }
+.map { width: 100%; }
+.map-cam .pin { position: absolute; width: 3.4%; z-index: 2; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3)); }
+.map-arrow {
+  height: 6%;
+  transform-origin: 0 50%;
+  transform: translateY(-50%) rotate(var(--rot));
+}
+.map-label {
+  position: absolute;
+  translate: -50% -50%;
+  font: 500 clamp(11px, 0.95vw, 15px) var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--sheet);
+  padding: 6px 9px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+.world-copy {
+  position: absolute;
+  left: clamp(16px, 6vw, 96px);
+  top: 12vh;
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  z-index: 5;
+}
+.world-open { margin: 0; font: 400 clamp(36px, 4.8vw, 76px) / 1 var(--serif); }
+.world-roles, .world-gh {
+  margin: 0;
+  background: var(--sheet);
+  padding: 10px 14px;
+  font: 500 clamp(12px, 1.05vw, 15px) var(--mono);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+}
+
+/* ---------- End card ---------- */
+
+.end .stage { display: grid; place-content: center; justify-items: center; gap: 6vh; padding: 0 16px; text-align: center; }
+.end-title { margin: 0; font: 400 clamp(52px, 8.4vw, 136px) / 0.95 var(--serif); }
+.doors { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(14px, 2.4vw, 32px); }
+.door {
+  position: relative;
+  width: clamp(210px, 22vw, 310px);
+  padding: 36px 28px;
+  text-decoration: none;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  isolation: isolate;
+}
+.door::before {
+  content: "";
+  position: absolute;
+  inset: 0 -4%;
+  z-index: -1;
+  background: var(--c);
+  -webkit-mask: url("/vox/torn.webp") 0 0 / 100% 100% no-repeat;
+  mask: url("/vox/torn.webp") 0 0 / 100% 100% no-repeat;
+}
+.door strong { font: 400 clamp(32px, 2.9vw, 42px) / 1 var(--serif); }
+.door span { font: 500 12.5px var(--mono); opacity: 0.85; }
+.door:hover::before { filter: brightness(1.08); }
+.end-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; font: 500 14px var(--mono); }
+.credit { max-width: 640px; margin: 0; font: 400 11.5px/1.6 var(--mono); color: var(--muted); }
+
+/* ---------- Phones ---------- */
+
+@media (max-width: 700px) {
+  .title-copy { width: auto; right: 16px; top: 50%; }
+  .title h1 { font-size: clamp(36px, 10.5vw, 46px); }
+  .cutout { width: 44vw; top: 7vh; right: 4vw; }
+  .yc { left: 16px; right: auto; top: 11vh; bottom: auto; width: 46vw; padding: 10px 10px 9px; }
+  .yc strong { font-size: 21px; margin: 6px 0 4px; }
+  .yc p { font-size: 11px; }
+  .yc-kicker { font-size: 8.5px; }
+  .strips { width: 94vw; bottom: 11vh; }
+  .strips .torn { height: 4.4vh; }
+  .panel { grid-template-columns: 1fr; grid-template-rows: auto; padding: 9vh 16px; gap: 14px; align-content: center; }
+  .shot { aspect-ratio: 16 / 9; }
+  .board { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .feature, .feature:nth-child(n + 4) { grid-column: span 1; }
+  .feature.star { grid-column: span 2; }
+  .clip { padding: 16px 12px 14px; }
+  .clip p { font-size: 12.5px; }
+  .clip-name { min-height: 30px; }
+  .clip-name strong { font-size: 24px; }
+  .clip-name .wordmark { height: 22px; }
+  .minor { display: none; }
+  .note { right: 0; bottom: -40px; font-size: 22px; }
+  .sticky { right: 0; bottom: -20%; width: 130px; padding: 12px; }
+  .sticky strong { font-size: 32px; }
+  .world-copy { top: 10vh; right: 16px; }
+  .map-cam { width: 200vw; }
+  .map-cam .pin { width: 4%; }
+}
+
+/* ---------- Reduced motion: everything visible, nothing moves ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .beat { height: auto; }
+  .stage { position: relative; height: auto; min-height: 100svh; padding: 10vh 0; }
+  .card { display: none; }
+  [data-cam] { transform: none !important; }
+  .cam-frame, .map-frame { position: relative; }
+  .track { position: relative; width: auto; flex-direction: column; }
+  .panel { width: auto; height: auto; }
+  .hint { animation: none; }
+  .ring, .arrow-ink { filter: none; }
+}
