@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { startVox } from "./engine.js";
 import { builds, chapters, end, links, report, timeline, title, world } from "./content.js";
 
 // A timed piece: its own --t runs 0 → 1 while the chapter's --p moves from a to b.
 const win = (a, b, extra) => ({ "--a": a, "--b": b, ...extra });
 const cam = (keys) => JSON.stringify(keys);
+const str = (s = "") => `"${s}"`;
 
 function Beat({ len, intro, className = "", children }) {
   return (
@@ -22,14 +23,22 @@ function Tape({ i, a, b, style }) {
   return <img className="tape slap k" src={`/vox/tape-${i}.webp`} alt="" style={{ ...win(a, b), ...style }} />;
 }
 
+// Chapter cards rip in half along a jagged tear and the halves fly apart.
+const tear = Array.from({ length: 19 }, (_, i) => `${50 + (i % 2 ? 2.6 : -2.6) + ((i * 7) % 3) - 1}% ${(i * 100) / 18}%`).join(", ");
+const TEAR_L = `polygon(0 0, ${tear}, 0 100%)`;
+const TEAR_R = `polygon(100% 0, ${tear}, 100% 100%)`;
+
 function ChapterCard({ ch }) {
+  const face = (
+    <div className="card-face">
+      <span className="card-n">{ch.n}</span>
+      <h2>{ch.name}</h2>
+    </div>
+  );
   return (
-    <div className="card k" style={win(0.04, 0.12, { "--c": ch.color, color: ch.ink })} aria-hidden="true">
-      <div className="card-fill">
-        <span className="card-n">{ch.n}</span>
-        <h2>{ch.name}</h2>
-      </div>
-      <div className="torn card-edge" />
+    <div className="card k" style={win(0.04, 0.13, { "--c": ch.color, color: ch.ink })} aria-hidden="true">
+      <div className="card-half left" style={{ clipPath: TEAR_L }}>{face}</div>
+      <div className="card-half right" style={{ clipPath: TEAR_R }}>{face}</div>
     </div>
   );
 }
@@ -83,14 +92,11 @@ function Title() {
   );
 }
 
+// 01: a newspaper front page. The camera reads the "By the numbers" column first, where every
+// figure counts up, then crosses to the story, where the highlighter picks out each win.
 function Wins() {
-  const windows = [
-    [0.16, 0.24],
-    [0.3, 0.38],
-    [0.44, 0.52],
-    [0.58, 0.68],
-    [0.72, 0.8],
-  ];
+  const numAt = (i) => 0.2 + i * 0.06;
+  const lineAt = (i) => 0.57 + i * 0.05;
   return (
     <Beat len={5} className="numbers">
       <ChapterCard ch={chapters[0]} />
@@ -98,45 +104,52 @@ function Wins() {
         <div
           className="cam"
           data-cam={cam([
-            [0.1, 0, 4, 1.08, -2],
-            [0.16, 4, 16, 1.28, -1],
-            [0.26, 4, 16, 1.28, -1],
-            [0.3, 3, 8, 1.28, 0],
-            [0.4, 3, 8, 1.28, 0],
-            [0.44, 2, -1, 1.28, 0],
-            [0.54, 2, -1, 1.28, 0],
-            [0.58, 0, -9, 1.28, 1],
-            [0.68, 0, -9, 1.28, 1],
-            [0.72, 0, -17, 1.28, 0],
-            [0.8, 0, -17, 1.28, 0],
-            [0.86, 0, 0, 0.92, 0],
+            [0.1, 0, 3, 0.96, 1.5],
+            [0.18, -22, 4, 1.22, 1],
+            [0.5, -22, 4, 1.22, 1],
+            [0.56, 12, 2, 1.16, -1],
+            [0.82, 12, 2, 1.16, -1],
+            [0.9, 0, 0, 0.94, 0],
+          ])}
+          data-cam-phone={cam([
+            [0.1, 0, 0, 0.86, 0],
+            [0.18, 0, -24, 1, 0],
+            [0.5, 0, -24, 1, 0],
+            [0.56, 0, 14, 1, 0],
+            [0.82, 0, 14, 1, 0],
+            [0.9, 0, 0, 0.86, 0],
           ])}
         >
-          <article className="doc">
-            <header className="doc-head">
-              <span className="doc-mast">{report.masthead}</span>
+          <article className="front">
+            <header className="front-head">
               <span>{report.dateline}</span>
+              <strong className="front-mast">{report.masthead}</strong>
+              <span>Vol. 21 · Free</span>
             </header>
-            <h3>{report.heading}</h3>
-            {report.lines.map((l, i) => (
-              <p key={i}>
-                {l.pre}
-                {l.hl && <Hl a={windows[i][0]} b={windows[i][1]}>{l.hl}</Hl>}
-                {l.circle && (
-                  <span className="circled">
-                    {l.circle}
-                    <span className="ring k" style={win(...windows[i])} />
-                  </span>
-                )}
-                {l.post}
-              </p>
-            ))}
+            <div className="front-cols">
+              <div className="story">
+                <h3>{report.heading}</h3>
+                {report.lines.map((l, i) => (
+                  <p key={i}>
+                    {l.pre}
+                    {l.hl && <Hl a={lineAt(i)} b={lineAt(i) + 0.045}>{l.hl}</Hl>}
+                    {l.post}
+                  </p>
+                ))}
+              </div>
+              <aside className="by-numbers">
+                <h4>By the numbers</h4>
+                {report.numbers.map((n, i) => (
+                  <div className="fig slap k" key={n.label} style={win(numAt(i), numAt(i) + 0.03)}>
+                    <span className="count k" style={win(numAt(i), numAt(i) + 0.05, { "--to": n.to, "--pre": str(n.pre), "--post": str(n.post) })}>
+                      {n.circle && <span className="ring k" style={win(numAt(i) + 0.05, numAt(i) + 0.11)} />}
+                    </span>
+                    <small>{n.label}</small>
+                  </div>
+                ))}
+              </aside>
+            </div>
           </article>
-          <div className="sticky slap k" style={win(0.88, 0.95, { "--r": "5deg" })}>
-            <span>{report.sticky.top}</span>
-            <strong>{report.sticky.big}</strong>
-            <span>{report.sticky.bottom}</span>
-          </div>
         </div>
       </div>
     </Beat>
@@ -151,10 +164,36 @@ function Climb() {
     const hold = start(i) + 0.145;
     keys.push([hold, -step * i, 0, 1, 0], [hold + 0.025, -step * (i + 1), 0, 1, 0]);
   });
+  // The career as a git graph: the line draws itself and each job is a commit; PetTrace forks off.
+  const n = timeline.length;
+  const x = (i) => ((i * 100 + 7) / (n * 100)) * 1000;
+  const fork = timeline.findIndex((t) => t.branch);
   return (
     <Beat len={6} className="climb">
       <ChapterCard ch={chapters[1]} />
-      <div className="track" data-pan="" data-cam={cam(keys)} style={{ "--n": timeline.length }}>
+      <div className="track" data-pan="" data-cam={cam(keys)} style={{ "--n": n }}>
+        <svg className="git" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+          <path className="git-line k" style={win(0.06, 0.9)} pathLength="1" d="M0 50 L1000 50" />
+          {fork > 0 && (
+            <path
+              className="git-line branch k"
+              style={win(start(fork) - 0.06, start(fork))}
+              pathLength="1"
+              d={`M${x(fork - 1) + 40} 50 C${x(fork - 1) + 110} 50 ${x(fork) - 70} 12 ${x(fork)} 12 L1000 12`}
+            />
+          )}
+        </svg>
+        {timeline.map((t, i) => (
+          <div
+            key={t.hash}
+            className={`commit slap k${t.branch ? " on-branch" : ""}`}
+            style={win(start(i) - 0.02, start(i) + 0.02, { left: `calc(${i * 100}vw + 7vw)` })}
+          >
+            <i />
+            <code>{t.hash}</code>
+            <span>{t.msg}</span>
+          </div>
+        ))}
         {timeline.map((t, i) => {
           const s = start(i);
           return (
@@ -163,7 +202,6 @@ function Climb() {
               <div className={`shot slap k${t.logo ? " has-logo" : ""}`} style={win(s + 0.02, s + 0.06, { "--r": i % 2 ? "2deg" : "-2deg" })}>
                 {t.logo && <img className="shot-logo" src={t.logo} alt={`${t.org} logo`} />}
                 {(!t.logo || t.logoText) && <span>{t.org}</span>}
-                <img className="pin drop k" src="/vox/pin.webp" alt="" style={win(s + 0.05, s + 0.08)} />
                 {t.stamp && <span className="stamp slap k" style={win(s + 0.11, s + 0.14, { "--r": "-14deg" })}>{t.stamp}</span>}
               </div>
               <div className="side">
@@ -191,8 +229,48 @@ function Climb() {
   );
 }
 
+// 03: clippings get pinned, then red string runs from Newral to everything built through it.
 function Builds() {
-  const { featured, minor } = builds;
+  const { featured, minor, hub, hubLinks } = builds;
+  const wrap = useRef(null);
+  const [geo, setGeo] = useState({ w: 0, h: 0, pins: {}, strings: [] });
+  const featuredAt = (i) => 0.18 + i * 0.065;
+  const minorAt = (i) => 0.52 + i * 0.04;
+
+  useLayoutEffect(() => {
+    // Measure with offsets (layout boxes), so slap rotations and the camera don't skew the numbers.
+    const measure = () => {
+      const el = wrap.current;
+      if (!el) return;
+      const pins = {};
+      el.querySelectorAll("[data-name]").forEach((c) => {
+        if (!c.offsetParent) return;
+        pins[c.dataset.name] = [c.offsetLeft + c.offsetWidth / 2, c.offsetTop + 6];
+      });
+      const h = pins[hub];
+      const strings = h
+        ? hubLinks
+            .filter((name) => pins[name])
+            .map((name) => {
+              const p = pins[name];
+              const sag = 14 + Math.abs(p[0] - h[0]) * 0.04;
+              return { name, d: `M${h[0]} ${h[1]} Q${(h[0] + p[0]) / 2} ${Math.max(h[1], p[1]) + sag} ${p[0]} ${p[1]}` };
+            })
+        : [];
+      setGeo({ w: el.offsetWidth, h: el.offsetHeight, pins, strings });
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+    addEventListener("resize", measure);
+    return () => removeEventListener("resize", measure);
+  }, [hub, hubLinks]);
+
+  const pinAt = (name) => {
+    const fi = featured.findIndex((f) => f.name === name);
+    if (fi >= 0) return featuredAt(fi) + 0.03;
+    return minorAt(minor.findIndex((m) => m.name === name)) + 0.02;
+  };
+
   return (
     <Beat len={4.5} className="builds">
       <ChapterCard ch={chapters[2]} />
@@ -201,12 +279,12 @@ function Builds() {
           <h3 className="board-title slap k" style={win(0.12, 0.17, { "--r": "-1deg" })}>
             Built from <Hl a={0.15} b={0.2}>zero to one</Hl>
           </h3>
+          <div className="board-wrap" ref={wrap}>
           <div className="board">
             {featured.map((b, i) => {
-              const s = 0.18 + i * 0.065;
+              const s = featuredAt(i);
               return (
-                <div className={`clip feature slap k${b.star ? " star" : ""}`} key={b.name} style={win(s, s + 0.05, { "--r": `${b.r}deg` })}>
-                  <Tape i={(i % 3) + 1} a={s + 0.03} b={s + 0.06} style={{ "--r": `${-b.r * 2}deg`, top: "-14%", left: "36%" }} />
+                <div data-name={b.name} className={`clip feature slap k${b.star ? " star" : ""}`} key={b.name} style={win(s, s + 0.05, { "--r": `${b.r}deg` })}>
                   <span className="clip-tag">{b.tag}</span>
                   <div className="clip-name">
                     {b.logo && <img src={b.logo} alt={b.logoOnly ? b.name : ""} className={b.logoOnly ? "wordmark" : "mark-icon"} />}
@@ -215,8 +293,8 @@ function Builds() {
                   <p>{b.line}</p>
                   {b.star && (
                     <>
-                      <span className="ring wide k" style={win(0.68, 0.78)} />
-                      <span className="note slap k" style={win(0.78, 0.85, { "--r": "-4deg" })}>Top 10 of 30,000+</span>
+                      <span className="ring wide k" style={win(0.76, 0.84)} />
+                      <span className="note slap k" style={win(0.84, 0.9, { "--r": "-4deg" })}>Top 10 of 30,000+</span>
                     </>
                   )}
                 </div>
@@ -225,14 +303,23 @@ function Builds() {
           </div>
           <div className="minor">
             {minor.map((m, i) => {
-              const s = 0.52 + i * 0.04;
+              const s = minorAt(i);
               return (
-                <div className="clip small slap k" key={m.name} style={win(s, s + 0.04, { "--r": `${(i - 1) * 1.5}deg` })}>
+                <div data-name={m.name} className="clip small slap k" key={m.name} style={win(s, s + 0.04, { "--r": `${(i - 1) * 1.5}deg` })}>
                   {m.logo ? <img src={m.logo} alt={m.name} className="wordmark" /> : <strong>{m.name}</strong>}
                   <p>{m.line}</p>
                 </div>
               );
             })}
+          </div>
+          <svg className="strings" width={geo.w} height={geo.h} viewBox={`0 0 ${geo.w || 1} ${geo.h || 1}`} aria-hidden="true">
+            {geo.strings.map((s, i) => (
+              <path key={s.name} className="string k" style={win(0.6 + i * 0.025, 0.66 + i * 0.025)} pathLength="1" d={s.d} />
+            ))}
+          </svg>
+          {Object.entries(geo.pins).map(([name, [px, py]]) => (
+            <img key={name} className="board-pin drop k" src="/vox/pin.webp" alt="" style={win(pinAt(name), pinAt(name) + 0.03, { left: px, top: py })} />
+          ))}
           </div>
         </div>
       </div>
@@ -311,10 +398,7 @@ function End() {
         <a href={links.instagram}>Instagram</a>
         <a href={links.site}>bpss.in</a>
       </nav>
-      <p className="credit">
-        Format inspired by <a href="https://www.avivashishta.com/lab/explained">Avi Vashishta’s Vox-style explainer</a>. Built with
-        Claude Code; paper, tape and marker assets generated with AI. Company logos belong to their owners.
-      </p>
+      <p className="credit">© 2026 Bhanu Pratap Singh. Company logos belong to their owners.</p>
     </Beat>
   );
 }
